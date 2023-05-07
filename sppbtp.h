@@ -5,10 +5,7 @@
 #define SPPBTP_VERSION   "1.0"
 #define SPPBTP_BUFMAX    128
 #define SPPBTP_ARGMAX    40
-#define SPPBTP_ARGSTRMAX 8
-
-static char sppbtp_buff[SPPBTP_BUFMAX];
-static char sppbtp_args[SPPBTP_ARGSTRMAX][SPPBTP_ARGMAX + 1];
+#define SPPBTP_ARGSTRMAX 2
 
 #define sizeofarray(arr) (sizeof(arr) / sizeof(*(arr)))
 
@@ -94,3 +91,7 @@ typedef struct {
 
 sppbtp_which sppbtp_parse_name(char data[4]);
 sppbtp_command sppbtp_parse(char *data);
+
+// recv commands
+
+sppbtp_command sppbtp_recv(int fd);

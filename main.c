@@ -12,7 +12,9 @@
 #include <curses.h>
 
 #include "set_ticker.h" // -> set_ticker()
+
 #include "networking.h"
+#include "sppbtp.h"
 
 #include "game.h" // -> game_obj
 
@@ -49,6 +51,19 @@ int main(int argc, char *argv[]) {
 
 void set_up() {
 	if (!connect_with_network_info(&network)) exit(EXIT_FAILURE);
+	if (network.role == ROLE_SERVER) {
+		sppbtp_send_helo(network.socket, TICKS_PER_SEC, 10, "dummy");
+	} else {
+		sppbtp_command cmd = sppbtp_recv(network.socket);
+		if (cmd.valid) {
+			if (cmd.which == SPPBTP_HELO) {
+				fprintf(stderr, "they called themself '%s'.\n",
+					cmd.data.helo.player_name);
+			} else {
+				fprintf(stderr, "they didn't even give me their name.\n");
+			}
+		}
+	}
 
 	srand(getpid()); // seed random number generator
 

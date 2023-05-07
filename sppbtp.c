@@ -11,6 +11,9 @@
 
 #include "sppbtp.h"
 
+static char sppbtp_buff[SPPBTP_BUFMAX];
+static char sppbtp_args[SPPBTP_ARGSTRMAX][SPPBTP_ARGMAX + 1];
+
 // write into the command buffer and send it.
 // adds the CRLF line ending automatically
 // -- even adding it if the regular output was truncated.
@@ -75,6 +78,8 @@ void sppbtp_send_done(int fd, char *message) {
 void sppbtp_send_err(int fd, char *message) {
 	sendprintf(fd, "?ERR " SPPBTP_ARG, message);
 }
+
+#undef sendprintf
 
 sppbtp_which sppbtp_parse_name(char data[4]) {
 	static struct {
@@ -149,4 +154,15 @@ sppbtp_command sppbtp_parse(char *data) {
 	return cmd;
 }
 
-#undef sendprintf
+sppbtp_command sppbtp_recv(int fd) {
+	sppbtp_command cmd;
+	memset(&cmd, 0, sizeof(cmd));
+	memset(&sppbtp_buff, 0, sizeof(sppbtp_buff));
+	cmd.valid = false;
+
+	ssize_t len = read(fd, sppbtp_buff, sizeof(sppbtp_buff));
+	if (len < 0) cmd.which = SPPBTP_ERR;
+	if (len <= 0) return cmd;
+
+	return sppbtp_parse((char *)sppbtp_buff);
+}
