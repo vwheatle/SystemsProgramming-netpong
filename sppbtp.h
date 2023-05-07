@@ -1,14 +1,24 @@
 #pragma once
 
-#define SPPBTP_VERSION "1.0"
-#define SPPBTP_BUFMAX  128
-#define SPPBTP_ARGMAX  40
+#include <stdbool.h>
 
-#define as_a_string_eval(x) #x
-#define as_a_string(x)      as_a_string_eval(x)
+#define SPPBTP_VERSION   "1.0"
+#define SPPBTP_BUFMAX    128
+#define SPPBTP_ARGMAX    40
+#define SPPBTP_ARGSTRMAX 8
+
+static char sppbtp_buff[SPPBTP_BUFMAX];
+static char sppbtp_args[SPPBTP_ARGSTRMAX][SPPBTP_ARGMAX + 1];
+
+#define sizeofarray(arr) (sizeof(arr) / sizeof(*(arr)))
+
+#define stringify_eval(x) #x
+#define stringify(x)      stringify_eval(x)
 
 // include in printf-s to limit strings to the maximum length.
-#define SPPBTP_ARG "%" as_a_string(SPPBTP_ARGMAX) "s"
+#define SPPBTP_ARG        "%" stringify(SPPBTP_ARGMAX) "s"
+#define SPPBTP_ARG_RESTOF "%" stringify(SPPBTP_ARGMAX) "c"
+// (the latter consumes the "rest of" the messaage)
 
 // send commands
 
@@ -26,11 +36,13 @@ void sppbtp_send_err(int fd, char *message);
 // parse commands
 
 struct sppbtp_helo_data {
+	char *version;
 	int ticks_per_sec;
 	int net_height;
 	char *player_name;
 };
 struct sppbtp_name_data {
+	char *version;
 	char *player_name;
 };
 struct sppbtp_serv_data {
@@ -66,6 +78,7 @@ typedef enum {
 	SPPBTP_ERR
 } sppbtp_which;
 typedef struct {
+	bool valid;
 	sppbtp_which which;
 	union {
 		struct sppbtp_helo_data helo;
@@ -79,5 +92,5 @@ typedef struct {
 	} data;
 } sppbtp_command;
 
+sppbtp_which sppbtp_parse_name(char data[4]);
 sppbtp_command sppbtp_parse(char *data);
-void sppbtp_free_command(sppbtp_command command);

@@ -1,4 +1,6 @@
+#include <stdlib.h>
 #include <stdio.h>
+#include <stdbool.h>
 
 #include <string.h>
 
@@ -8,10 +10,6 @@
 #include <unistd.h> // -> write, read
 
 #include "sppbtp.h"
-
-static char sppbtp_buff[SPPBTP_BUFMAX];
-
-#define sizeofarray(arr) (sizeof(arr) / sizeof(*(arr)))
 
 // write into the command buffer and send it.
 // adds the CRLF line ending automatically
@@ -42,7 +40,8 @@ void sppbtp_send_helo(
 }
 
 void sppbtp_send_name(int fd, char *player_name) {
-	sendprintf(fd, "NAME %s %s", SPPBTP_VERSION, player_name);
+	sendprintf(
+		fd, "NAME " SPPBTP_ARG " " SPPBTP_ARG, SPPBTP_VERSION, player_name);
 }
 
 void sppbtp_send_serv(int fd, int serves) {
@@ -75,6 +74,79 @@ void sppbtp_send_done(int fd, char *message) {
 
 void sppbtp_send_err(int fd, char *message) {
 	sendprintf(fd, "?ERR " SPPBTP_ARG, message);
+}
+
+sppbtp_which sppbtp_parse_name(char data[4]) {
+	static struct {
+		char *name;
+		sppbtp_which num;
+	} name_map[] = {// annoying comment
+		{"HELO", SPPBTP_HELO}, {"NAME", SPPBTP_NAME}, {"SERV", SPPBTP_SERV},
+		{"BALL", SPPBTP_BALL}, {"MISS", SPPBTP_MISS}, {"QUIT", SPPBTP_QUIT},
+		{"DONE", SPPBTP_DONE}};
+
+	for (size_t i = 0; i < sizeofarray(name_map); i++)
+		if (strncmp(data, name_map[i].name, 4) == 0) return name_map[i].num;
+
+	return SPPBTP_ERR;
+}
+
+sppbtp_command sppbtp_parse(char *data) {
+	sppbtp_command cmd;
+	memset(&cmd, 0, sizeof(cmd));
+	memset(&sppbtp_args, 0, sizeof(sppbtp_args));
+	cmd.valid = false;
+
+	int got;
+	switch ((cmd.which = sppbtp_parse_name(data))) {
+	case SPPBTP_HELO:
+		got = sscanf(data, "HELO " SPPBTP_ARG " %d %d " SPPBTP_ARG,
+			(char *)sppbtp_args[0], &cmd.data.helo.ticks_per_sec,
+			&cmd.data.helo.net_height, (char *)sppbtp_args[1]);
+		cmd.data.helo.version = sppbtp_args[0];
+		cmd.data.helo.player_name = sppbtp_args[1];
+		cmd.valid = got == 4;
+		break;
+	case SPPBTP_NAME:
+		got = sscanf(data, "NAME " SPPBTP_ARG " " SPPBTP_ARG,
+			(char *)sppbtp_args[0], (char *)sppbtp_args[1]);
+		cmd.data.name.version = sppbtp_args[0];
+		cmd.data.name.player_name = sppbtp_args[1];
+		cmd.valid = got == 2;
+		break;
+	case SPPBTP_SERV:
+		got = sscanf(data, "SERV %d", &cmd.data.serv.serves);
+		cmd.valid = got == 1;
+		break;
+	case SPPBTP_BALL:
+		got = sscanf(data, "BALL %d %d %d %d %c", &cmd.data.ball.net_y,
+			&cmd.data.ball.x_ttm, &cmd.data.ball.y_ttm, &cmd.data.ball.y_dir,
+			&cmd.data.ball.symbol);
+		cmd.valid = got == 4 || got == 5;
+		break;
+	case SPPBTP_MISS:
+		got = sscanf(data, "MISS " SPPBTP_ARG_RESTOF, (char *)sppbtp_args[0]);
+		cmd.data.miss.message = sppbtp_args[0];
+		cmd.valid = got == 1;
+		break;
+	case SPPBTP_QUIT:
+		got = sscanf(data, "QUIT " SPPBTP_ARG_RESTOF, (char *)sppbtp_args[0]);
+		cmd.data.quit.message = sppbtp_args[0];
+		cmd.valid = got == 1;
+		break;
+	case SPPBTP_DONE:
+		got = sscanf(data, "DONE " SPPBTP_ARG_RESTOF, (char *)sppbtp_args[0]);
+		cmd.data.done.message = sppbtp_args[0];
+		cmd.valid = got == 1;
+		break;
+	default:
+		got = sscanf(data, "%*5c" SPPBTP_ARG_RESTOF, (char *)sppbtp_args[0]);
+		cmd.data.err.message = sppbtp_args[0];
+		cmd.valid = got == 1;
+		break;
+	}
+
+	return cmd;
 }
 
 #undef sendprintf
