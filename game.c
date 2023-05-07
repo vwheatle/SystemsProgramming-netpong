@@ -1,3 +1,7 @@
+#include <stdlib.h>
+
+#include <string.h>
+
 #include <curses.h>
 
 #include "networking.h" // -> network_info
@@ -6,13 +10,71 @@
 #include "game.h"     // -> game_obj
 #include "wall.h"     // -> wall_obj, PADDLE_*
 
-// statically get length of statically-sized array
-#define sizeofarr(arr) (sizeof(arr) / sizeof(*arr))
+#include "utility.h"
+#include "sppbtp.h"
 
-// set up the initial game state.
-void game_setup(game_obj *game, network_info *network) {
+void game_handshake(game_obj *game, network_info *network) {
 	game->network = network;
 
+	fprintf(stdout, "Enter your name (%d chars max): ", SPPBTP_ARGMAX);
+	fflush(stdout); // may need to flush stdout to display this prompt correctly
+
+	char name[SPPBTP_ARGMAX];
+	fgets(name, sizeofarr(name), stdin);
+	trim_whitespace(name, SPPBTP_ARGMAX);
+	game->name[game->network->role] = strndup(name, SPPBTP_ARGMAX);
+
+	if (game->network->role == ROLE_SERVER)
+		sppbtp_send_helo(
+			game->network->socket, TICKS_PER_SEC, BOARD_HEIGHT, name);
+	// TODO: resizable board
+
+	sppbtp_command cmd = sppbtp_recv(game->network->socket);
+	if (cmd.valid) {
+		switch (cmd.which) {
+		case SPPBTP_HELO:
+			if (game->network->role == ROLE_SERVER) {
+				sppbtp_send_err(game->network->socket,
+					"servers shouldn't get HELO commands");
+				return;
+			} else if (strncmp(cmd.data.helo.version, SPPBTP_VERSION,
+						   sizeofarr(SPPBTP_VERSION)) != 0) {
+				sppbtp_send_err(game->network->socket, "versions don't match");
+				return;
+			}
+			game->name[ROLE_SERVER] =
+				strndup(cmd.data.helo.player_name, SPPBTP_ARGMAX);
+			sppbtp_send_name(game->network->socket, name);
+			break;
+		case SPPBTP_NAME:
+			if (game->network->role == ROLE_CLIENT) {
+				sppbtp_send_err(game->network->socket,
+					"clients shouldn't get NAME commands");
+				return;
+			} else if (strncmp(cmd.data.helo.version, SPPBTP_VERSION,
+						   sizeofarr(SPPBTP_VERSION)) != 0) {
+				sppbtp_send_err(game->network->socket, "versions don't match");
+				return;
+			}
+			game->name[ROLE_CLIENT] =
+				strndup(cmd.data.name.player_name, SPPBTP_ARGMAX);
+			break;
+		default:
+			fprintf(stderr, "they didn't even give me their name.\n");
+			sppbtp_send_err(game->network->socket, "needed HELO/NAME first");
+			return;
+		}
+	} else {
+		sppbtp_send_err(game->network->socket, "couldn't understand");
+		return;
+	}
+
+	fprintf(stderr, "they called themself '%s'.\n",
+		game->name[other_role(game->network->role)]);
+}
+
+// set up the initial game state.
+void game_setup(game_obj *game) {
 	game->playing = true;
 
 	// serves (lives)
@@ -118,4 +180,10 @@ bool game_draw(game_obj *game) {
 		drawn |= paddle_draw(&game->paddle[i]);
 
 	return drawn;
+}
+
+void game_destroy(game_obj *game) {
+	free(game->name[0]);
+	free(game->name[1]);
+	free(game->message);
 }

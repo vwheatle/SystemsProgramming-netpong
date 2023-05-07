@@ -14,6 +14,14 @@
 
 #include "networking.h"
 
+network_role other_role(network_role role) {
+	switch (role) {
+	case ROLE_CLIENT: return ROLE_SERVER;
+	case ROLE_SERVER: return ROLE_CLIENT;
+	default: return ROLE_INVALID;
+	}
+}
+
 network_info create_network_info(char *server, int port) {
 	network_info i;
 	i.connected = false;
@@ -70,6 +78,13 @@ bool connect_with_network_info(network_info *i) {
 
 		// you're the server, bind your socket to
 		// the IP that getaddrinfo found for you
+
+		// but first, discard any old socket still
+		// hanging around and waiting to time out
+		// https://stackoverflow.com/a/5730516/
+		int flag = 1;
+		setsockopt(i->socket, SOL_SOCKET, SO_REUSEADDR, &flag, sizeof(flag));
+
 		if (bind(i->socket, sv_info->ai_addr, sv_info->ai_addrlen) == -1) {
 			perror("couldn't bind socket");
 			close(i->socket);

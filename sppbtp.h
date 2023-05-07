@@ -2,15 +2,12 @@
 
 #include <stdbool.h>
 
+#include "utility.h" // -> sizeofarr, stringify
+
 #define SPPBTP_VERSION   "1.0"
 #define SPPBTP_BUFMAX    128
 #define SPPBTP_ARGMAX    40
 #define SPPBTP_ARGSTRMAX 2
-
-#define sizeofarray(arr) (sizeof(arr) / sizeof(*(arr)))
-
-#define stringify_eval(x) #x
-#define stringify(x)      stringify_eval(x)
 
 // include in printf-s to limit strings to the maximum length.
 #define SPPBTP_ARG        "%" stringify(SPPBTP_ARGMAX) "s"

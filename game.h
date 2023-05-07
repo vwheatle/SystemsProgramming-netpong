@@ -11,6 +11,9 @@ typedef struct {
 	network_info *network;
 	long ticks_per_sec;
 
+	char *name[2];
+	char *message;
+
 	bool playing;
 	int serves;
 
@@ -20,7 +23,11 @@ typedef struct {
 	wall_obj wall[3];
 } game_obj;
 
-void game_setup(game_obj *, network_info *);
+void game_handshake(game_obj *, network_info *);
+
+void game_setup(game_obj *);
 void game_input(game_obj *, int);
 void game_update(game_obj *);
 bool game_draw(game_obj *);
+
+void game_destroy(game_obj *);

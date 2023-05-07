@@ -2,12 +2,13 @@
 
 #include <stdbool.h>
 
-#define ROLE_SERVER 0
-#define ROLE_CLIENT 1
+typedef enum { ROLE_SERVER, ROLE_CLIENT, ROLE_INVALID } network_role;
+
+network_role other_role(network_role);
 
 typedef struct {
 	bool connected;
-	int role;
+	network_role role;
 
 	char *server;
 	int port;

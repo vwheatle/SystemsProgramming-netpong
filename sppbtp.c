@@ -10,6 +10,7 @@
 #include <unistd.h> // -> write, read
 
 #include "sppbtp.h"
+#include "utility.h"
 
 static char sppbtp_buff[SPPBTP_BUFMAX];
 static char sppbtp_args[SPPBTP_ARGSTRMAX][SPPBTP_ARGMAX + 1];
@@ -34,7 +35,6 @@ static char sppbtp_args[SPPBTP_ARGSTRMAX][SPPBTP_ARGMAX + 1];
 		sppbtp_buff[len++] = '\0'; \
 		write(fd, sppbtp_buff, len); \
 	} while (0)
-
 
 void sppbtp_send_helo(
 	int fd, int ticks_per_sec, int net_height, char *player_name) {
@@ -76,6 +76,7 @@ void sppbtp_send_done(int fd, char *message) {
 }
 
 void sppbtp_send_err(int fd, char *message) {
+	fprintf(stderr, "sent error message to other:\n\t%s\n", message);
 	sendprintf(fd, "?ERR " SPPBTP_ARG, message);
 }
 
@@ -90,7 +91,7 @@ sppbtp_which sppbtp_parse_name(char data[4]) {
 		{"BALL", SPPBTP_BALL}, {"MISS", SPPBTP_MISS}, {"QUIT", SPPBTP_QUIT},
 		{"DONE", SPPBTP_DONE}};
 
-	for (size_t i = 0; i < sizeofarray(name_map); i++)
+	for (size_t i = 0; i < sizeofarr(name_map); i++)
 		if (strncmp(data, name_map[i].name, 4) == 0) return name_map[i].num;
 
 	return SPPBTP_ERR;

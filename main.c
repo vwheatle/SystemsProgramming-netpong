@@ -51,27 +51,16 @@ int main(int argc, char *argv[]) {
 
 void set_up() {
 	if (!connect_with_network_info(&network)) exit(EXIT_FAILURE);
-	if (network.role == ROLE_SERVER) {
-		sppbtp_send_helo(network.socket, TICKS_PER_SEC, 10, "dummy");
-	} else {
-		sppbtp_command cmd = sppbtp_recv(network.socket);
-		if (cmd.valid) {
-			if (cmd.which == SPPBTP_HELO) {
-				fprintf(stderr, "they called themself '%s'.\n",
-					cmd.data.helo.player_name);
-			} else {
-				fprintf(stderr, "they didn't even give me their name.\n");
-			}
-		}
-	}
+
+	game_handshake(&game, &network);
 
 	srand(getpid()); // seed random number generator
 
-	initscr(); // give me a new screen buffer (a "window")
-	noecho();  // don't echo characters as i type them
-	crmode();  // don't process line breaks or delete characters
+	initscr();       // give me a new screen buffer (a "window")
+	noecho();        // don't echo characters as i type them
+	crmode();        // don't process line breaks or delete characters
 
-	game_setup(&game, &network);      // set up game state
+	game_setup(&game);                // set up game state
 
 	signal(SIGINT, SIG_IGN);          // ignore interrupt signals (Ctrl+C)
 	set_ticker(1000 / TICKS_PER_SEC); // param is in millisecs per tick
@@ -81,13 +70,14 @@ void set_up() {
 }
 
 void update(__attribute__((unused)) int signum) {
-	// don't want to risk signal calling update inside of previous update call
+	// don't want to risk signal calling update inside of previous update
+	// call
 	signal(SIGALRM, SIG_IGN); // disarm alarm
 
 	// update the state of every object in the game.
 	// (some objects' update functions may actually draw when called in this
-	//  update function -- but they do it with the promise of later, in their
-	//  respective draw function, returning true.)
+	//  update function -- but they do it with the promise of later, in
+	//  their respective draw function, returning true.)
 	game_update(&game);
 
 	// if the game actually changed anything
@@ -104,6 +94,7 @@ void update(__attribute__((unused)) int signum) {
 }
 
 void wrap_up() {
+	game_destroy(&game);
 	disconnect_with_network_info(&network);
 
 	set_ticker(0); // disable sending of SIGALRM at constant interval

@@ -12,14 +12,18 @@ CC = gcc
 CC_FLAGS = -Wall -Wpedantic -Wextra -Werror -fsanitize=undefined
 VALGRIND_FLAGS = --quiet --tool=memcheck --leak-check=yes --show-reachable=yes --num-callers=3 --error-exitcode=1
 
-ALL_OBJECTS = sppbtp.o networking.o game.o ball.o wall.o geometry.o
+ALL_OBJECTS = utility.o sppbtp.o networking.o game.o ball.o wall.o geometry.o
 
-all: main
+pong_game: $(ALL_OBJECTS) main.c set_ticker.h
+	$(CC) $(CC_FLAGS) -o pong_game main.c $(ALL_OBJECTS) -lncurses
 
-sppbtp.o: sppbtp.c sppbtp.h
+utility.o: utility.c utility.h
+	$(CC) $(CC_FLAGS) -c -o utility.o utility.c
+
+sppbtp.o: sppbtp.c sppbtp.h utility.o
 	$(CC) $(CC_FLAGS) -c -o sppbtp.o sppbtp.c
 
-networking.o: networking.c networking.h
+networking.o: networking.c networking.h sppbtp.o
 	$(CC) $(CC_FLAGS) -c -o networking.o networking.c
 
 geometry.o: geometry.c geometry.h
@@ -33,9 +37,6 @@ ball.o: ball.c ball.h geometry.h
 
 game.o: game.c game.h geometry.h wall.h networking.h
 	$(CC) $(CC_FLAGS) -c -o game.o game.c -lncurses
-
-main: $(ALL_OBJECTS) main.c set_ticker.h
-	$(CC) $(CC_FLAGS) -o pong_game main.c $(ALL_OBJECTS) -lncurses
 
 # -c for compiling but not linking
 # -g for debugging with gdb...
