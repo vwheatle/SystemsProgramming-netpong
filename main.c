@@ -4,6 +4,7 @@
 // pong_game
 
 #include <stdlib.h>
+#include <stdbool.h>
 
 #include <unistd.h>
 #include <signal.h>
@@ -11,6 +12,7 @@
 #include <curses.h>
 
 #include "set_ticker.h" // -> set_ticker()
+#include "networking.h"
 
 #include "game.h" // -> game_obj
 
@@ -19,8 +21,22 @@ void update(int signum);
 void wrap_up();
 
 static game_obj game;
+static network_info network;
 
-int main() {
+int main(int argc, char *argv[]) {
+	if (argc < 2 || argc > 3) {
+		char *name = argc > 0 ? argv[0] : "netpong";
+		fprintf(stderr, "usage: %s [server_addr] port\n", name);
+		fprintf(stderr,
+			"(if server_addr not specified, "
+			"you become a server.)\n");
+		exit(EXIT_FAILURE);
+	}
+
+	char *server = argc == 3 ? argv[1] : NULL;
+	int port = atoi(argc == 3 ? argv[2] : argv[1]);
+	network = create_network_info(server, port);
+
 	set_up();
 
 	// todo: see if async input could work
@@ -32,13 +48,15 @@ int main() {
 }
 
 void set_up() {
+	if (!connect_with_network_info(&network)) exit(EXIT_FAILURE);
+
 	srand(getpid()); // seed random number generator
 
 	initscr(); // give me a new screen buffer (a "window")
 	noecho();  // don't echo characters as i type them
 	crmode();  // don't process line breaks or delete characters
 
-	game_setup(&game); // set up game state
+	game_setup(&game, &network);      // set up game state
 
 	signal(SIGINT, SIG_IGN);          // ignore interrupt signals (Ctrl+C)
 	set_ticker(1000 / TICKS_PER_SEC); // param is in millisecs per tick
@@ -71,6 +89,8 @@ void update(__attribute__((unused)) int signum) {
 }
 
 void wrap_up() {
+	disconnect_with_network_info(&network);
+
 	set_ticker(0); // disable sending of SIGALRM at constant interval
 	endwin();      // destroy my window
 

@@ -1,5 +1,7 @@
 #include <curses.h>
 
+#include "networking.h" // -> network_info
+
 #include "geometry.h" // -> vec2i, rect2i
 #include "game.h"     // -> game_obj
 #include "wall.h"     // -> wall_obj, PADDLE_*
@@ -8,7 +10,9 @@
 #define sizeofarr(arr) (sizeof(arr) / sizeof(*arr))
 
 // set up the initial game state.
-void game_setup(game_obj *game) {
+void game_setup(game_obj *game, network_info *network) {
+	game->network = network;
+
 	game->playing = true;
 
 	// serves (lives)
