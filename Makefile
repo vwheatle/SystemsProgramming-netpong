@@ -12,9 +12,12 @@ CC = gcc
 CC_FLAGS = -Wall -Wpedantic -Wextra -Werror -fsanitize=undefined
 VALGRIND_FLAGS = --quiet --tool=memcheck --leak-check=yes --show-reachable=yes --num-callers=3 --error-exitcode=1
 
-ALL_OBJECTS = networking.o game.o ball.o wall.o geometry.o
+ALL_OBJECTS = sppbtp.o networking.o game.o ball.o wall.o geometry.o
 
 all: main
+
+sppbtp.o: sppbtp.c sppbtp.h
+	$(CC) $(CC_FLAGS) -c -o sppbtp.o sppbtp.c
 
 networking.o: networking.c networking.h
 	$(CC) $(CC_FLAGS) -c -o networking.o networking.c

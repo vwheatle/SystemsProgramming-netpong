@@ -9,6 +9,7 @@
 
 typedef struct {
 	network_info *network;
+	long ticks_per_sec;
 
 	bool playing;
 	int serves;

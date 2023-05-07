@@ -121,9 +121,11 @@ bool connect_with_network_info(network_info *i) {
 
 		fprintf(stderr, "connected to a server!\n");
 		i->connected = true;
+	} else {
+		fprintf(stderr, "i don't know who i am.\n");
 	}
 
-	return true;
+	return i->connected;
 }
 
 void disconnect_with_network_info(network_info *i) {
