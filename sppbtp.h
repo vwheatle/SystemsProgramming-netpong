@@ -72,7 +72,8 @@ typedef enum {
 	SPPBTP_MISS,
 	SPPBTP_QUIT,
 	SPPBTP_DONE,
-	SPPBTP_ERR
+	SPPBTP_ERR,
+	SPPBTP_NO_MORE
 } sppbtp_which;
 typedef struct {
 	bool valid;

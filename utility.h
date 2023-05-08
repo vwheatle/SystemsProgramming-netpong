@@ -6,8 +6,8 @@
 #include <ctype.h>
 
 // get minimum/maximum value
-// #define min(x, y) ((x) < (y)) ? (x) : (y)
-// #define max(x, y) ((x) > (y)) ? (x) : (y)
+#define min(x, y) ((x) < (y)) ? (x) : (y)
+#define max(x, y) ((x) > (y)) ? (x) : (y)
 
 // swap
 #define swap(x, y) \

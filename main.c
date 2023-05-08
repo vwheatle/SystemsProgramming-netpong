@@ -7,7 +7,8 @@
 #include <stdbool.h>
 
 #include <unistd.h>
-#include <signal.h>
+#include <poll.h>   // -> poll
+#include <signal.h> // -> signal
 
 #include <curses.h>
 
@@ -41,9 +42,17 @@ int main(int argc, char *argv[]) {
 
 	set_up();
 
-	// todo: see if async input could work
-	// to put an input callback in update loop
-	while (game.playing) game_input(&game, getchar());
+	struct pollfd poll_data[2];
+	poll_data[0].fd = STDIN_FILENO;
+	poll_data[0].events = POLLIN;
+	poll_data[1].fd = network.socket;
+	poll_data[1].events = POLLIN;
+
+	while (game.playing) {
+		poll(poll_data, sizeofarr(poll_data), -1);
+		if (poll_data[0].revents & POLLIN) game_input(&game, getchar());
+		if (poll_data[1].revents & POLLIN) game_event(&game);
+	}
 
 	wrap_up();
 	exit(EXIT_SUCCESS);
@@ -53,6 +62,10 @@ void set_up() {
 	if (!connect_with_network_info(&network)) exit(EXIT_FAILURE);
 
 	game_handshake(&game, &network);
+	if (game.error) {
+		wrap_up();
+		exit(EXIT_FAILURE);
+	}
 
 	srand(getpid()); // seed random number generator
 
@@ -63,15 +76,14 @@ void set_up() {
 	game_setup(&game);                // set up game state
 
 	signal(SIGINT, SIG_IGN);          // ignore interrupt signals (Ctrl+C)
-	set_ticker(1000 / TICKS_PER_SEC); // param is in millisecs per tick
+	set_ticker(1000 / game.ticks_per_sec); // millisecs per tick
 
 	update(SIGALRM); // tail call into update (and pretend the call
 	                 //  was from the ticker triggering a SIGALRM)
 }
 
 void update(__attribute__((unused)) int signum) {
-	// don't want to risk signal calling update inside of previous update
-	// call
+	// don't want to risk signal calling update inside of previous update call
 	signal(SIGALRM, SIG_IGN); // disarm alarm
 
 	// update the state of every object in the game.
@@ -100,5 +112,5 @@ void wrap_up() {
 	set_ticker(0); // disable sending of SIGALRM at constant interval
 	endwin();      // destroy my window
 
-	printf("Thank you for playing Pong!\n");
+	if (!game.error) printf("Thank you for playing Pong!\n");
 }

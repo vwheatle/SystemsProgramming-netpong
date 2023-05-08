@@ -125,6 +125,7 @@ sppbtp_command sppbtp_parse(char *data) {
 		cmd.valid = got == 1;
 		break;
 	case SPPBTP_BALL:
+		cmd.data.ball.symbol = 0;
 		got = sscanf(data, "BALL %d %d %d %d %c", &cmd.data.ball.net_y,
 			&cmd.data.ball.x_ttm, &cmd.data.ball.y_ttm, &cmd.data.ball.y_dir,
 			&cmd.data.ball.symbol);
@@ -147,8 +148,8 @@ sppbtp_command sppbtp_parse(char *data) {
 		break;
 	default:
 		got = sscanf(data, "%*5c" SPPBTP_ARG_RESTOF, (char *)sppbtp_args[0]);
-		cmd.data.err.message = sppbtp_args[0];
-		cmd.valid = got == 1;
+		cmd.data.err.message = got ? sppbtp_args[0] : NULL;
+		cmd.valid = true;
 		break;
 	}
 
@@ -162,8 +163,16 @@ sppbtp_command sppbtp_recv(int fd) {
 	cmd.valid = false;
 
 	ssize_t len = read(fd, sppbtp_buff, sizeof(sppbtp_buff));
-	if (len < 0) cmd.which = SPPBTP_ERR;
-	if (len <= 0) return cmd;
+	if (len < 0) {
+		cmd.which = SPPBTP_ERR;
+		cmd.data.err.message = "socket error";
+		return cmd;
+	}
+	if (len == 0) {
+		cmd.which = SPPBTP_NO_MORE;
+		cmd.data.err.message = "no more";
+		return cmd;
+	}
 
 	return sppbtp_parse((char *)sppbtp_buff);
 }

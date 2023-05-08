@@ -2,7 +2,7 @@
 
 #include <stdbool.h>
 
-typedef enum { ROLE_SERVER, ROLE_CLIENT, ROLE_INVALID } network_role;
+typedef enum { ROLE_SERVER = 0, ROLE_CLIENT = 1, ROLE_INVALID } network_role;
 
 network_role other_role(network_role);
 
