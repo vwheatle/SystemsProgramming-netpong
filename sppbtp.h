@@ -10,7 +10,10 @@
 #define SPPBTP_ARGSTRMAX 2
 
 // include in printf-s to limit strings to the maximum length.
-#define SPPBTP_ARG        "%" stringify(SPPBTP_ARGMAX) "s"
+#define SPPBTP_ARG_PRINT "%-." stringify(SPPBTP_ARGMAX) "s"
+
+// include in scanf-s to read only up to the maximum length.
+#define SPPBTP_ARG_SCAN   "%" stringify(SPPBTP_ARGMAX) "s"
 #define SPPBTP_ARG_RESTOF "%" stringify(SPPBTP_ARGMAX) "c"
 // (the latter consumes the "rest of" the messaage)
 

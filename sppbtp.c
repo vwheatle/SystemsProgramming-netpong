@@ -38,19 +38,19 @@ static char sppbtp_args[SPPBTP_ARGSTRMAX][SPPBTP_ARGMAX + 1];
 
 void sppbtp_send_helo(
 	int fd, int ticks_per_sec, int net_height, char *player_name) {
-	sendprintf(fd, "HELO " SPPBTP_ARG " %d %d " SPPBTP_ARG, SPPBTP_VERSION,
-		ticks_per_sec, net_height, player_name);
+	sendprintf(fd, "HELO " SPPBTP_ARG_PRINT " %d %d " SPPBTP_ARG_PRINT,
+		SPPBTP_VERSION, ticks_per_sec, net_height, player_name);
 }
 
 void sppbtp_send_name(int fd, char *player_name) {
-	sendprintf(
-		fd, "NAME " SPPBTP_ARG " " SPPBTP_ARG, SPPBTP_VERSION, player_name);
+	sendprintf(fd, "NAME " SPPBTP_ARG_PRINT " " SPPBTP_ARG_PRINT,
+		SPPBTP_VERSION, player_name);
 }
 
 void sppbtp_send_serv(int fd, int serves) {
 	sendprintf(fd, "SERV %d", serves);
-	// (this comment included to expand this so formatter
-	//  doesn't think this should be a one-liner)
+	// (this comment included to waste space to convince
+	//  formatter that this should not be a one-liner)
 }
 
 void sppbtp_send_ball(
@@ -64,20 +64,20 @@ void sppbtp_send_ball(
 }
 
 void sppbtp_send_miss(int fd, char *message) {
-	sendprintf(fd, "MISS " SPPBTP_ARG, message);
+	sendprintf(fd, "MISS " SPPBTP_ARG_PRINT, message);
 }
 
 void sppbtp_send_quit(int fd, char *message) {
-	sendprintf(fd, "QUIT " SPPBTP_ARG, message);
+	sendprintf(fd, "QUIT " SPPBTP_ARG_PRINT, message);
 }
 
 void sppbtp_send_done(int fd, char *message) {
-	sendprintf(fd, "DONE " SPPBTP_ARG, message);
+	sendprintf(fd, "DONE " SPPBTP_ARG_PRINT, message);
 }
 
 void sppbtp_send_err(int fd, char *message) {
 	fprintf(stderr, "sent error message to other:\n\t%s\n", message);
-	sendprintf(fd, "?ERR " SPPBTP_ARG, message);
+	sendprintf(fd, "?ERR " SPPBTP_ARG_PRINT, message);
 }
 
 #undef sendprintf
@@ -106,7 +106,7 @@ sppbtp_command sppbtp_parse(char *data) {
 	int got;
 	switch ((cmd.which = sppbtp_parse_name(data))) {
 	case SPPBTP_HELO:
-		got = sscanf(data, "HELO " SPPBTP_ARG " %d %d " SPPBTP_ARG,
+		got = sscanf(data, "HELO " SPPBTP_ARG_SCAN " %d %d " SPPBTP_ARG_SCAN,
 			(char *)sppbtp_args[0], &cmd.data.helo.ticks_per_sec,
 			&cmd.data.helo.net_height, (char *)sppbtp_args[1]);
 		cmd.data.helo.version = sppbtp_args[0];
@@ -114,7 +114,7 @@ sppbtp_command sppbtp_parse(char *data) {
 		cmd.valid = got == 4;
 		break;
 	case SPPBTP_NAME:
-		got = sscanf(data, "NAME " SPPBTP_ARG " " SPPBTP_ARG,
+		got = sscanf(data, "NAME " SPPBTP_ARG_SCAN " " SPPBTP_ARG_SCAN,
 			(char *)sppbtp_args[0], (char *)sppbtp_args[1]);
 		cmd.data.name.version = sppbtp_args[0];
 		cmd.data.name.player_name = sppbtp_args[1];
