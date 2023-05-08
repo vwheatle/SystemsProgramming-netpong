@@ -4,6 +4,8 @@
 
 #include "networking.h"
 
+#include "geometry.h"
+
 #include "wall.h" // -> wall_obj
 #include "ball.h" // -> ball_obj
 
@@ -17,10 +19,12 @@ typedef struct {
 	bool playing;
 	int serves;
 
+	rect2i field;
+
 	ball_obj ball[1];
 
 	wall_obj paddle[1];
-	wall_obj wall[3];
+	wall_obj wall[2];
 } game_obj;
 
 void game_handshake(game_obj *, network_info *);

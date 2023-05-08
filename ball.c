@@ -35,8 +35,12 @@ void ball_serve(ball_obj *ball) {
 	// pick a random direction on the Y axis to move in
 	int random_y_dir = (rand() & 1) ? +1 : -1;
 
-	ball->pos = (vec2i) {X_INIT, Y_INIT};
-	ball->dir = (vec2i) {1, random_y_dir};
+	ball->pos = (vec2i) {ball->field->pos.x + ball->field->size.width / 2,
+		ball->field->pos.y + ball->field->size.height / 2};
+
+	// awkward hack
+	int correct_x_dir = ball->paddles[0].rect.pos.x > ball->pos.x ? 1 : -1;
+	ball->dir = (vec2i) {correct_x_dir, random_y_dir};
 
 	ball->ticks_left = ball->ticks_total = (vec2i) {X_TTM, Y_TTM};
 
@@ -148,19 +152,19 @@ int bounce_or_lose(ball_obj *ball, bool step[2]) {
 	// bounce off of edges of window
 
 	// top/bottom edges
-	if (ball->pos.y <= TOP_ROW) {
+	if (ball->pos.y <= ball->field->pos.y) {
 		ball->dir.y = 1;
 		bounced = true;
-	} else if (ball->pos.y >= BOT_ROW) {
+	} else if (ball->pos.y >= rect_bottom_right(*(ball->field)).y) {
 		ball->dir.y = -1;
 		bounced = true;
 	}
 
 	// left/right edges
-	if (ball->pos.x <= LEFT_EDGE) {
+	if (ball->pos.x <= ball->field->pos.x) {
 		ball->dir.x = 1;
-		bounced = true;
-	} else if (ball->pos.x >= RIGHT_EDGE) {
+		lost = true;
+	} else if (ball->pos.x >= rect_bottom_right(*(ball->field)).x) {
 		ball->dir.x = -1;
 		lost = true;
 	}

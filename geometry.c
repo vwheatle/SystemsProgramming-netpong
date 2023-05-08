@@ -1,3 +1,4 @@
+#include "utility.h"
 #include "geometry.h"
 
 // utility functions to check equality of vectors, sizes, and rectangles
@@ -16,6 +17,19 @@ bool point_in_rect(vec2i point, rect2i rect) {
 	return point.x >= rect.pos.x && point.y >= rect.pos.y &&
 		point.x < (rect.pos.x + rect.size.width) &&
 		point.y < (rect.pos.y + rect.size.height);
+}
+
+// make a rectangle from a top left point and a bottom right point
+rect2i rect_from_corners(vec2i top_left, vec2i bottom_right) {
+	if (bottom_right.x < top_left.x) swap(top_left.x, bottom_right.x);
+	if (bottom_right.y < top_left.y) swap(top_left.y, bottom_right.y);
+
+	size2i size = (size2i) {
+		bottom_right.x - top_left.x + 1,
+		bottom_right.y - top_left.y + 1,
+	};
+
+	return (rect2i) {top_left, size};
 }
 
 // calculate the bottom right point of a rectangle

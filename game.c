@@ -24,10 +24,14 @@ void game_handshake(game_obj *game, network_info *network) {
 	trim_whitespace(name, SPPBTP_ARGMAX);
 	game->name[game->network->role] = strndup(name, SPPBTP_ARGMAX);
 
+	// Have to initialize the field size here because
+	// it gets modified by HELO...
+	game->field = rect_from_corners((vec2i) {FIELD_LEFT_EDGE, FIELD_TOP_ROW},
+		(vec2i) {FIELD_RIGHT_EDGE, FIELD_BOT_ROW});
+
 	if (game->network->role == ROLE_SERVER)
-		sppbtp_send_helo(
-			game->network->socket, TICKS_PER_SEC, BOARD_HEIGHT, name);
-	// TODO: resizable board
+		sppbtp_send_helo(game->network->socket, TICKS_PER_SEC,
+			game->field.size.height, name);
 
 	sppbtp_command cmd = sppbtp_recv(game->network->socket);
 	if (cmd.valid) {
@@ -42,6 +46,7 @@ void game_handshake(game_obj *game, network_info *network) {
 				sppbtp_send_err(game->network->socket, "versions don't match");
 				return;
 			}
+			game->field.size.height = cmd.data.helo.net_height;
 			game->name[ROLE_SERVER] =
 				strndup(cmd.data.helo.player_name, SPPBTP_ARGMAX);
 			sppbtp_send_name(game->network->socket, name);
@@ -77,17 +82,30 @@ void game_handshake(game_obj *game, network_info *network) {
 void game_setup(game_obj *game) {
 	game->playing = true;
 
+	// field
+	game->field = rect_from_corners((vec2i) {FIELD_LEFT_EDGE, FIELD_TOP_ROW},
+		(vec2i) {FIELD_RIGHT_EDGE, FIELD_BOT_ROW});
+
 	// serves (lives)
 	game->serves = 3;
 
 	// paddle
-	game->paddle[0].rect = (rect2i) {{RIGHT_EDGE, PADDLE_START_Y}, PADDLE_SIZE};
+	if (game->network->role == ROLE_SERVER) {
+		// if server, appear on left.
+		game->paddle[0].rect =
+			(rect2i) {{game->field.pos.x, PADDLE_START_Y}, PADDLE_SIZE};
+	} else {
+		// if client, appear on right.
+		game->paddle[0].rect = (rect2i) {
+			{rect_bottom_right(game->field).x, PADDLE_START_Y}, PADDLE_SIZE};
+	}
 
 	// walls
 	game->wall[0].rect =
-		(rect2i) {{LEFT_EDGE, TOP_ROW + 1}, {1, BOARD_HEIGHT - 2}};
-	game->wall[1].rect = (rect2i) {{LEFT_EDGE, TOP_ROW}, {BOARD_WIDTH, 1}};
-	game->wall[2].rect = (rect2i) {{LEFT_EDGE, BOT_ROW}, {BOARD_WIDTH, 1}};
+		(rect2i) {game->field.pos, {game->field.size.width, 1}};
+	game->wall[1].rect =
+		(rect2i) {{game->field.pos.x, rect_bottom_right(game->field).y},
+			{game->field.size.width, 1}};
 
 	// additional wall setup
 	// (paddles and walls are the same thing aside from being in different
@@ -100,13 +118,15 @@ void game_setup(game_obj *game) {
 	// balls
 	// (game supports more than one ball in play, but they may overlap.)
 	for (size_t i = 0; i < sizeofarr(game->ball); i++) {
-		ball_setup(&game->ball[i]);
-
 		game->ball[i].paddles = &game->paddle[0];
 		game->ball[i].paddles_len = sizeofarr(game->paddle);
 
 		game->ball[i].walls = &game->wall[0];
 		game->ball[i].walls_len = sizeofarr(game->wall);
+
+		game->ball[i].field = &game->field;
+
+		ball_setup(&game->ball[i]);
 	}
 }
 
@@ -125,9 +145,10 @@ void game_input(game_obj *game, int key) {
 	}
 
 	vec2i *paddle_pos = &game->paddle[0].rect.pos;
-	if (key == 'j' && paddle_pos->y <= (BOT_ROW - 1 - PADDLE_HEIGHT))
+	if (key == 'j' &&
+		paddle_pos->y <= (rect_bottom_right(game->field).y - 1 - PADDLE_HEIGHT))
 		paddle_pos->y++;
-	else if (key == 'k' && paddle_pos->y > (TOP_ROW + 1))
+	else if (key == 'k' && paddle_pos->y > (game->field.pos.y + 1))
 		paddle_pos->y--;
 }
 

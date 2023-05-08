@@ -9,6 +9,8 @@
 typedef struct {
 	vec2i pos, dir;
 
+	rect2i *field;
+
 	vec2i ticks_total;
 	vec2i ticks_left;
 
