@@ -4,7 +4,7 @@
 
 #include "utility.h" // -> sizeofarr, stringify
 
-#define SPPBTP_VERSION   "incomplete"
+#define SPPBTP_VERSION   "1.0"
 #define SPPBTP_BUFMAX    128
 #define SPPBTP_ARGMAX    40
 #define SPPBTP_ARGSTRMAX 2
